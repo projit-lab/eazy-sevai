@@ -1,6 +1,6 @@
-# e-Sevai Setup Guide
+# Eazy Sevai Setup Guide
 
-This guide will help you get the e-Sevai website up and running.
+This guide will help you get the Eazy Sevai website up and running.
 
 ## Quick Start
 

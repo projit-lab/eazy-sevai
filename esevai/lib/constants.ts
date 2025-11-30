@@ -1,18 +1,18 @@
-export const SITE_NAME = 'e-Sevai';
+export const SITE_NAME = 'Eazy Sevai';
 export const SITE_DESCRIPTION = 'Government Services Made Simple — Apply Online for Aadhaar & Passport Assistance';
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://esevai.com';
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://Eazy Sevai.com';
 
 export const CONTACT = {
-  phone: '+91-XXXXXXXXXX',
-  whatsapp: '+91-XXXXXXXXXX',
-  email: 'support@esevai.com',
+  phone: '7845495937',
+  whatsapp: '061411888504',
+  email: 'support@Eazy Sevai.com',
   address: 'Your Office Address, City, State - PIN CODE'
 };
 
 export const SOCIAL_LINKS = {
-  facebook: 'https://facebook.com/esevai',
-  twitter: 'https://twitter.com/esevai',
-  instagram: 'https://instagram.com/esevai'
+  facebook: 'https://facebook.com/Eazy Sevai',
+  twitter: 'https://twitter.com/Eazy Sevai',
+  instagram: 'https://instagram.com/Eazy Sevai'
 };
 
 export const SERVICE_CATEGORIES = [

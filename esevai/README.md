@@ -1,4 +1,4 @@
-# e-Sevai Franchise Website
+# Eazy Sevai Franchise Website
 
 A modern, full-stack Next.js application for government service facilitation including Aadhaar, Passport, and Certificate services.
 
@@ -50,7 +50,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 ## 📁 Project Structure
 
 ```
-esevai/
+Eazy Sevai/
 ├── app/                      # Next.js App Router pages
 │   ├── api/                  # API routes for n8n integration
 │   ├── services/             # Service pages and application forms
@@ -204,7 +204,7 @@ See `.env.example` for complete list.
 ## 🤝 Support
 
 For questions or issues:
-- Email: support@esevai.com
+- Email: support@Eazy Sevai.com
 - Phone: +91-XXXXXXXXXX
 
 ## 📄 License

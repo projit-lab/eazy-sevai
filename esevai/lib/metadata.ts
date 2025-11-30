@@ -22,7 +22,7 @@ export function generatePageMetadata({
     "aadhaar services",
     "passport application",
     "government services",
-    "e-sevai",
+    "Eazy Sevai",
     "online application",
     "document assistance",
     "aadhaar update",
@@ -62,7 +62,7 @@ export function generatePageMetadata({
       title: fullTitle,
       description: fullDescription,
       images: [image],
-      creator: "@esevai",
+      creator: "@Eazy Sevai",
     },
     robots: {
       index: true,
@@ -93,7 +93,7 @@ export function generateOrganizationSchema() {
     logo: `${SITE_URL}/logo.png`,
     image: `${SITE_URL}/og-image.jpg`,
     telephone: "+91-XXXXXXXXXX",
-    email: "support@esevai.com",
+    email: "support@Eazy Sevai.com",
     address: {
       "@type": "PostalAddress",
       streetAddress: "Your Street Address",
@@ -122,9 +122,9 @@ export function generateOrganizationSchema() {
       },
     ],
     sameAs: [
-      "https://facebook.com/esevai",
-      "https://twitter.com/esevai",
-      "https://instagram.com/esevai",
+      "https://facebook.com/Eazy Sevai",
+      "https://twitter.com/Eazy Sevai",
+      "https://instagram.com/Eazy Sevai",
     ],
   };
 }

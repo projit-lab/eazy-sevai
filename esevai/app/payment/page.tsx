@@ -1,292 +1,231 @@
-"use client";
+'use client';
 
-import { use, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Loader2, Wallet } from "lucide-react";
-import { SERVICES } from "@/lib/services";
+import { useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
-function PaymentContent({
-  searchParams,
-}: {
-  searchParams: Promise<{ applicationId?: string; serviceId?: string }>;
-}) {
-  const params = use(searchParams);
+export default function PaymentPage() {
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  
+  // Fix: Properly parse amount as float, default to 0
+  const amount = parseFloat(searchParams.get('amount') || '0');
+  const serviceName = searchParams.get('service') || 'Service';
+  const serviceSlug = searchParams.get('slug') || '';
+  
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'success' | 'failed'>('idle');
 
-  const applicationId = params.applicationId;
-  const serviceId = params.serviceId;
+  // Validate amount
+  const isValidAmount = amount > 0;
 
-  const service = SERVICES.find((s) => s.id === serviceId);
-  const amount = service?.fee || 0;
-  const serviceName = service?.name || "Service";
-
-  // Load Razorpay script
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    script.onload = () => setRazorpayLoaded(true);
-    script.onerror = () => setError("Failed to load payment gateway");
-    document.body.appendChild(script);
-
-    return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!applicationId || !serviceId) {
-      setError("Invalid payment details");
-    }
-  }, [applicationId, serviceId]);
-
-  const handleRazorpayPayment = async () => {
-    if (!razorpayLoaded) {
-      setError("Payment system is loading. Please wait...");
+  const handlePayment = async () => {
+    if (!isValidAmount) {
+      alert('Invalid amount. Please return to the service page.');
       return;
     }
 
-    setLoading(true);
-    setError("");
+    setIsProcessing(true);
 
     try {
-      console.log('💳 Creating payment order for:', applicationId);
-      
-      // Create payment order
-      const response = await fetch("/api/create-payment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      // Step 1: Create order on backend
+      const orderResponse = await fetch('/api/payment/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          applicationId,
-          amount,
+          amount: amount * 100, // Convert to paise
           serviceName,
-          gateway: "razorpay",
-          userData: {
-            name: "User",
-            email: "user@example.com",
-            phone: "9999999999",
-          },
+          serviceSlug,
         }),
       });
 
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || "Payment creation failed");
+      if (!orderResponse.ok) {
+        throw new Error('Failed to create order');
       }
 
-      console.log('✅ Payment order created:', data.orderId);
+      const { orderId, razorpayKeyId } = await orderResponse.json();
 
-      // Initialize Razorpay
+      // Step 2: Initialize Razorpay
       const options = {
-        key: data.keyId,
-        amount: data.amount,
-        currency: data.currency,
-        order_id: data.orderId,
-        name: "e-Sevai",
+        key: razorpayKeyId,
+        amount: amount * 100,
+        currency: 'INR',
+        name: 'Eazy Sevai',
         description: serviceName,
+        order_id: orderId,
         handler: async function (response: any) {
-          console.log("✅ Payment successful:", response);
-          
+          // Step 3: Verify payment on backend
           try {
-            console.log('📤 Sending complete application data to n8n...');
-            
-            // Get application data from localStorage
-            const applicationDataStr = localStorage.getItem('pendingApplication');
-            let applicationData = null;
-            
-            if (applicationDataStr) {
-              applicationData = JSON.parse(applicationDataStr);
-              console.log('📦 Retrieved application data from localStorage');
-            } else {
-              console.warn('⚠️ No application data found in localStorage');
-            }
-            
-            // Send complete data with payment info to n8n
-            const paymentWebhook = 'https://n8n.srv1068626.hstgr.cloud/webhook/payment-confirmation';
-            
-            const completeData = {
-              // Payment info
-              paymentId: response.razorpay_payment_id,
-              orderId: response.razorpay_order_id,
-              paymentSignature: response.razorpay_signature,
-              paymentStatus: 'paid',
-              paymentDate: new Date().toISOString(),
-              
-              // Application data (if available)
-              applicationId: applicationData?.applicationId || applicationId,
-              serviceId: applicationData?.serviceId || serviceId,
-              serviceName: applicationData?.serviceName || serviceName,
-              userData: applicationData?.userData || {},
-              formData: applicationData?.formData || {},
-              timestamp: applicationData?.timestamp || new Date().toISOString(),
-            };
-            
-            console.log('📦 Complete data being sent:', completeData);
-            
-            const n8nResponse = await fetch(paymentWebhook, {
+            const verifyResponse = await fetch('/api/payment/verify', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(completeData),
+              body: JSON.stringify({
+                orderId: response.razorpay_order_id,
+                paymentId: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+                serviceSlug,
+              }),
             });
 
-            const responseText = await n8nResponse.text();
-            console.log('📨 n8n response status:', n8nResponse.status);
-            console.log('📨 n8n response body:', responseText);
-
-            if (n8nResponse.ok) {
-              console.log('✅ Application submitted successfully to n8n');
-              // Clear localStorage after successful submission
-              localStorage.removeItem('pendingApplication');
-              console.log('🗑️ Cleared localStorage');
+            if (verifyResponse.ok) {
+              setPaymentStatus('success');
+              // Redirect to success page after 2 seconds
+              setTimeout(() => {
+                router.push(`/payment/success?orderId=${orderId}`);
+              }, 2000);
             } else {
-              console.error('❌ n8n responded with error:', responseText);
+              throw new Error('Payment verification failed');
             }
-            
           } catch (error) {
-            console.error('❌ Error sending data to n8n:', error);
-            // Don't fail the payment flow - user already paid
+            console.error('Verification error:', error);
+            setPaymentStatus('failed');
           }
-          
-          // Redirect to thank you page
-          console.log('🎉 Redirecting to thank you page');
-          router.push(`/thank-you?ref=${applicationId}&payment=success`);
         },
         prefill: {
-          name: "User",
-          email: "user@example.com",
-          contact: "9999999999",
+          name: '',
+          email: '',
+          contact: '',
         },
         theme: {
-          color: "#047857",
+          color: '#2563eb',
         },
         modal: {
-          ondismiss: function () {
-            console.log('❌ Payment cancelled by user');
-            setLoading(false);
-            setError("Payment cancelled. Please try again.");
-          },
-        },
+          ondismiss: function() {
+            setIsProcessing(false);
+          }
+        }
       };
 
-      const rzp = new window.Razorpay(options);
-
-      rzp.on("payment.failed", function (response: any) {
-        console.error('❌ Payment failed:', response.error);
-        setLoading(false);
-        setError("Payment failed: " + response.error.description);
-      });
-
-      console.log('🚀 Opening Razorpay checkout');
-      rzp.open();
-    } catch (err) {
-      console.error('❌ Payment error:', err);
-      setError(err instanceof Error ? err.message : "Payment failed");
-      setLoading(false);
+      // @ts-ignore - Razorpay is loaded via script
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      console.error('Payment error:', error);
+      setPaymentStatus('failed');
+      setIsProcessing(false);
     }
   };
 
-  if (error && !applicationId) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Card className="border-red-200">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-red-500" />
-              <CardTitle>Payment Error</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-600">{error}</p>
-            <Button onClick={() => router.back()} className="mt-4">
-              Go Back
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Load Razorpay script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>Complete Payment</CardTitle>
-          <CardDescription>Application ID: {applicationId}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Service:</span>
-              <strong>{serviceName}</strong>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Service Fee:</span>
-              <span className="text-2xl font-bold text-green-600">₹{amount}</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              * Government fees will be paid separately through official portals
-            </p>
-          </div>
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md mx-auto">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          onClick={() => router.back()}
+          className="mb-6"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Service
+        </Button>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-              {error}
-            </div>
-          )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Confirmation</CardTitle>
+            <CardDescription>
+              Review your payment details before proceeding
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Service Details */}
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-600">Service</p>
+                <p className="font-semibold">{serviceName}</p>
+              </div>
 
-          {!razorpayLoaded && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-700 flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading payment gateway...</span>
+              <div className="border-t pt-4">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-gray-600">Total Amount</p>
+                  <p className="text-3xl font-bold text-blue-600">
+                    ₹{amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Inclusive of all applicable taxes
+                </p>
+              </div>
             </div>
-          )}
 
-          <Button
-            onClick={handleRazorpayPayment}
-            disabled={loading || !razorpayLoaded}
-            className="w-full"
-            size="lg"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Wallet className="mr-2 h-5 w-5" />
-                Pay ₹{amount} with Razorpay
-              </>
+            {/* Payment Status Messages */}
+            {paymentStatus === 'success' && (
+              <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <p className="text-sm text-green-800">Payment successful! Redirecting...</p>
+              </div>
             )}
-          </Button>
 
-          <p className="text-xs text-center text-gray-500">
-            Secure payment powered by Razorpay
-          </p>
-        </CardContent>
-      </Card>
+            {paymentStatus === 'failed' && (
+              <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                <p className="text-sm text-red-800">Payment failed. Please try again.</p>
+              </div>
+            )}
+
+            {/* Payment Button */}
+            {isValidAmount ? (
+              <Button
+                onClick={handlePayment}
+                disabled={isProcessing || paymentStatus === 'success'}
+                className="w-full"
+                size="lg"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : paymentStatus === 'success' ? (
+                  'Payment Successful'
+                ) : (
+                  <>Proceed to Payment</>
+                )}
+              </Button>
+            ) : (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">
+                  Invalid amount. Please return to the service page.
+                </p>
+              </div>
+            )}
+
+            {/* Security Notice */}
+            <div className="text-center">
+              <p className="text-xs text-gray-500">
+                🔒 Secure payment powered by Razorpay
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Payment Methods */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600 mb-3">Accepted Payment Methods</p>
+          <div className="flex justify-center gap-4 items-center">
+            <span className="text-xs text-gray-500">Credit/Debit Cards</span>
+            <span className="text-gray-300">•</span>
+            <span className="text-xs text-gray-500">UPI</span>
+            <span className="text-gray-300">•</span>
+            <span className="text-xs text-gray-500">Net Banking</span>
+            <span className="text-gray-300">•</span>
+            <span className="text-xs text-gray-500">Wallets</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
-}
-
-export default function PaymentPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ applicationId?: string; serviceId?: string }>;
-}) {
-  return <PaymentContent searchParams={searchParams} />;
 }

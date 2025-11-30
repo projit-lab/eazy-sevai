@@ -1,4 +1,4 @@
-export type ServiceCategory = 'aadhaar' | 'passport' | 'certificate';
+export type ServiceCategory = 'aadhaar' | 'passport' | 'certificate' | 'personal-family' | 'business-licensing' | 'property-assets' | 'social-pension' | 'student-education';
 
 export interface Service {
   id: string;
