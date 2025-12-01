@@ -1,122 +1,24 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
-
-@theme inline {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --color-sidebar-ring: hsl(var(--sidebar-ring));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --color-sidebar-accent: hsl(var(--sidebar-accent));
-  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --color-sidebar-primary: hsl(var(--sidebar-primary));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar: hsl(var(--sidebar));
-  --color-chart-5: hsl(var(--chart-5));
-  --color-chart-4: hsl(var(--chart-4));
-  --color-chart-3: hsl(var(--chart-3));
-  --color-chart-2: hsl(var(--chart-2));
-  --color-chart-1: hsl(var(--chart-1));
-  --color-ring: hsl(var(--ring));
-  --color-input: hsl(var(--input));
-  --color-border: hsl(var(--border));
-  --color-destructive: hsl(var(--destructive));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-secondary: hsl(var(--secondary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-primary: hsl(var(--primary));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-card: hsl(var(--card));
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+@theme {
+  /* Brand Colors */
+  --color-brand-navy: #1e3a5f;
+  --color-brand-blue: #0066b3;
+  --color-brand-teal: #14b8a6;
+  --color-brand-gold: #f0b42f;
+  --color-brand-light-yellow: #f5e6a8;
+  
+  /* Make them available as Tailwind classes */
+  --color-brand-navy: oklch(from #1e3a5f l c h);
+  --color-brand-blue: oklch(from #0066b3 l c h);
+  --color-brand-teal: oklch(from #14b8a6 l c h);
+  --color-brand-gold: oklch(from #f0b42f l c h);
 }
 
+/* Fallback for older approach */
 :root {
-  --radius: 0.75rem;
-  --background: 0 0% 100%;
-  --foreground: 0 0% 9%;
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 9%;
-  --primary: 168 93% 25%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 168 25% 96%;
-  --secondary-foreground: 168 93% 20%;
-  --muted: 0 0% 96%;
-  --muted-foreground: 0 0% 45%;
-  --accent: 168 50% 95%;
-  --accent-foreground: 168 93% 25%;
-  --destructive: 0 84% 60%;
-  --border: 0 0% 90%;
-  --input: 0 0% 90%;
-  --ring: 168 93% 25%;
-  --chart-1: 168 93% 35%;
-  --chart-2: 142 76% 36%;
-  --chart-3: 197 37% 24%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
-  --sidebar: 0 0% 98%;
-  --sidebar-foreground: 0 0% 9%;
-  --sidebar-primary: 168 93% 25%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 168 25% 96%;
-  --sidebar-accent-foreground: 168 93% 20%;
-  --sidebar-border: 0 0% 90%;
-  --sidebar-ring: 168 93% 25%;
-}
-
-.dark {
-  --background: 0 0% 9%;
-  --foreground: 0 0% 98%;
-  --card: 0 0% 12%;
-  --card-foreground: 0 0% 98%;
-  --popover: 0 0% 12%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 168 93% 35%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 168 20% 15%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 0 0% 15%;
-  --muted-foreground: 0 0% 60%;
-  --accent: 168 30% 18%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 62% 50%;
-  --border: 0 0% 20%;
-  --input: 0 0% 20%;
-  --ring: 168 93% 35%;
-  --chart-1: 168 93% 45%;
-  --chart-2: 142 76% 46%;
-  --chart-3: 197 37% 34%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
-  --sidebar: 0 0% 12%;
-  --sidebar-foreground: 0 0% 98%;
-  --sidebar-primary: 168 93% 35%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 168 20% 15%;
-  --sidebar-accent-foreground: 0 0% 98%;
-  --sidebar-border: 0 0% 20%;
-  --sidebar-ring: 168 93% 35%;
-}
-
-
-/* Show on hover */
-.services-dropdown-wrapper:hover .services-dropdown-menu {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  pointer-events: auto;
+  --color-brand-navy: #1e3a5f;
+  --color-brand-blue: #0066b3;
+  --color-brand-teal: #14b8a6;
+  --color-brand-gold: #f0b42f;
 }

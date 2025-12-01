@@ -1,130 +1,192 @@
-import Link from "next/link";
-import { SITE_NAME, CONTACT, WORKING_HOURS, SERVICE_CATEGORIES } from "@/lib/constants";
-import { Mail, Phone, MapPin, Clock } from "lucide-react";
+'use client'
 
-export function Footer() {
+import Link from 'next/link'
+import Image from 'next/image'
+import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react'
+
+export default function Footer() {
+  const currentYear = new Date().getFullYear()
+
   return (
-    <footer className="flex justify-center items-center border-t bg-muted/30">
-      <div className="container py-16 md:py-20">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-12">
-          <div>
-            <div className="mb-4 flex items-center space-x-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-lg">
-                e
-              </div>
-              <h3 className="text-xl font-bold tracking-tight">{SITE_NAME}</h3>
-            </div>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Making government services accessible and simple for everyone.
-              Authorized franchise for e-Governance services.
+    <footer className="bg-white border-t border-gray-200">
+      {/* Main Footer */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          
+          {/* Company Info */}
+          <div className="space-y-4">
+            <Link href="/" className="flex items-center gap-2">
+              <Image
+                src="/logo.png"
+                alt="Eazy Sevai"
+                width={32}
+                height={32}
+                className="rounded-lg"
+              />
+              <span className="text-xl font-bold" style={{ color: '#1e3a5f' }}>
+                Eazy Sevai
+              </span>
+            </Link>
+            <p className="text-gray-600 text-sm">
+              Professional documentation services for Tamil Nadu government certificates and licenses.
             </p>
+            <div className="flex items-center gap-3">
+              <a 
+                href="#" 
+                className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-[#0066b3] text-gray-600 hover:text-white transition flex items-center justify-center"
+                aria-label="Facebook"
+              >
+                <Facebook className="w-4 h-4" />
+              </a>
+              <a 
+                href="#" 
+                className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-[#0066b3] text-gray-600 hover:text-white transition flex items-center justify-center"
+                aria-label="Twitter"
+              >
+                <Twitter className="w-4 h-4" />
+              </a>
+              <a 
+                href="#" 
+                className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-[#0066b3] text-gray-600 hover:text-white transition flex items-center justify-center"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-4 h-4" />
+              </a>
+              <a 
+                href="#" 
+                className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-[#0066b3] text-gray-600 hover:text-white transition flex items-center justify-center"
+                aria-label="LinkedIn"
+              >
+                <Linkedin className="w-4 h-4" />
+              </a>
+            </div>
           </div>
 
+          {/* Quick Links */}
           <div>
-            <h3 className="mb-4 text-lg font-semibold">Services</h3>
-            <ul className="space-y-2 text-sm">
-              {SERVICE_CATEGORIES.map((category) => (
-                <li key={category.id}>
-                  <Link
-                    href={`/services?category=${category.id}`}
-                    className="text-muted-foreground transition-colors hover:text-primary"
-                  >
-                    {category.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="mb-4 text-lg font-semibold">Quick Links</h3>
-            <ul className="space-y-2 text-sm">
+            <h3 className="font-bold mb-4" style={{ color: '#1e3a5f' }}>
+              Quick Links
+            </h3>
+            <ul className="space-y-2">
               <li>
-                <Link
-                  href="/about"
-                  className="text-muted-foreground transition-colors hover:text-primary"
-                >
+                <Link href="/services" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                  All Services
+                </Link>
+              </li>
+              <li>
+                <Link href="/eligibility-checker" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                  Eligibility Checker
+                </Link>
+              </li>
+              <li>
+                <Link href="/how-it-works" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                  How It Works
+                </Link>
+              </li>
+              <li>
+                <Link href="/pricing" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link href="/about" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
                   About Us
                 </Link>
               </li>
+            </ul>
+          </div>
+
+          {/* Services */}
+          <div>
+            <h3 className="font-bold mb-4" style={{ color: '#1e3a5f' }}>
+              Popular Services
+            </h3>
+            <ul className="space-y-2">
               <li>
-                <Link
-                  href="/contact"
-                  className="text-muted-foreground transition-colors hover:text-primary"
-                >
-                  Contact
+                <Link href="/services/community-certificate" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                  Community Certificate
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/privacy-policy"
-                  className="text-muted-foreground transition-colors hover:text-primary"
-                >
-                  Privacy Policy
+                <Link href="/services/income-certificate" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                  Income Certificate
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/terms-of-service"
-                  className="text-muted-foreground transition-colors hover:text-primary"
-                >
-                  Terms of Service
+                <Link href="/services/birth-certificate" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                  Birth Certificate
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/refund-policy"
-                  className="text-muted-foreground transition-colors hover:text-primary"
-                >
-                  Refund Policy
+                <Link href="/services/death-certificate" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                  Death Certificate
+                </Link>
+              </li>
+              <li>
+                <Link href="/services/marriage-certificate" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                  Marriage Certificate
                 </Link>
               </li>
             </ul>
           </div>
 
+          {/* Contact Info */}
           <div>
-            <h3 className="mb-4 text-lg font-semibold">Contact Us</h3>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-start gap-2">
-                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <a href={`tel:${CONTACT.phone}`} className="text-muted-foreground hover:text-primary">
-                  {CONTACT.phone}
-                </a>
+            <h3 className="font-bold mb-4" style={{ color: '#1e3a5f' }}>
+              Contact Us
+            </h3>
+            <ul className="space-y-3">
+              <li className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-[#0066b3] mt-0.5 flex-shrink-0" />
+                <div>
+                  <a href="mailto:support@eazysevai.com" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                    support@eazysevai.com
+                  </a>
+                </div>
               </li>
-              <li className="flex items-start gap-2">
-                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <a href={`mailto:${CONTACT.email}`} className="text-muted-foreground hover:text-primary">
-                  {CONTACT.email}
-                </a>
+              <li className="flex items-start gap-3">
+                <Phone className="w-5 h-5 text-[#0066b3] mt-0.5 flex-shrink-0" />
+                <div>
+                  <a href="tel:+917845495937" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                    +91 78454 95937
+                  </a>
+                </div>
               </li>
-              <li className="flex items-start gap-2">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="text-muted-foreground">{CONTACT.address}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <div className="text-muted-foreground">
-                  <div>Mon-Fri: {WORKING_HOURS.weekdays}</div>
-                  <div>Sat: {WORKING_HOURS.saturday}</div>
-                  <div>Sun: {WORKING_HOURS.sunday}</div>
+              <li className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-[#0066b3] mt-0.5 flex-shrink-0" />
+                <div className="text-gray-600 text-sm">
+                  Tamil Nadu, India
                 </div>
               </li>
             </ul>
           </div>
         </div>
+      </div>
 
-        <div className="mt-12 space-y-4 border-t pt-8 text-center text-sm text-muted-foreground">
-          <p className="font-medium">
-            © {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
-          </p>
-          <p className="mx-auto max-w-3xl text-xs leading-relaxed">
-            <strong className="text-foreground">Disclaimer:</strong> This is a facilitation service and not the official government portal.
-            All government fees are paid separately through official channels. We provide assistance and documentation support only.
-          </p>
+      {/* Bottom Bar */}
+      <div className="border-t border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-gray-600 text-sm text-center md:text-left">
+              © {currentYear} Eazy Sevai. All rights reserved.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-6">
+              <Link href="/privacy-policy" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                Privacy Policy
+              </Link>
+              <Link href="/terms-of-service" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                Terms of Service
+              </Link>
+              <Link href="/refund-policy" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                Refund Policy
+              </Link>
+              <Link href="/contact" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                Contact
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
-  );
+  )
 }
-
-

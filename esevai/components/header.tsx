@@ -11,18 +11,21 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <Image
-              src="/logo.png"
-              alt="Eazy Sevai"
-              width={40}
-              height={40}
-              className="rounded-lg shadow-md group-hover:scale-105 transition-transform"
-            />
+            <div className="relative">
+              <div className="absolute inset-0 bg-brand-blue rounded-lg blur-md opacity-0 group-hover:opacity-30 transition-opacity"></div>
+              <Image
+                src="/logo.png"
+                alt="Eazy Sevai"
+                width={40}
+                height={40}
+                className="relative rounded-lg shadow-md group-hover:scale-105 transition-transform"
+              />
+            </div>
             <div className="flex flex-col leading-tight">
-              <span className="text-xl font-bold text-gray-900">
+              <span className="text-xl font-bold text-brand-navy group-hover:text-brand-blue transition-colors">
                 Eazy Sevai
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-600">
                 Tamil Nadu Services
               </span>
             </div>
@@ -30,25 +33,25 @@ export default function Header() {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            <Link href="/" className="text-sm font-medium text-gray-700 hover:text-teal-600">
+            <Link href="/" className="text-sm font-medium text-gray-700 hover:text-brand-blue transition-colors">
               Home
             </Link>
             <MegaMenu />
-            <Link href="/eligibility-checker" className="text-sm font-medium text-gray-700 hover:text-teal-600">
+            <Link href="/eligibility-checker" className="text-sm font-medium text-gray-700 hover:text-brand-blue transition-colors">
               Eligibility Checker
             </Link>
-            <Link href="/about" className="text-sm font-medium text-gray-700 hover:text-teal-600">
+            <Link href="/about" className="text-sm font-medium text-gray-700 hover:text-brand-blue transition-colors">
               About
             </Link>
-            <Link href="/contact" className="text-sm font-medium text-gray-700 hover:text-teal-600">
+            <Link href="/contact" className="text-sm font-medium text-gray-700 hover:text-brand-blue transition-colors">
               Contact
             </Link>
           </nav>
 
-          {/* CTA Button */}
+          {/* CTA Button with brand gradient */}
           <Link
             href="/services"
-            className="hidden md:block px-6 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition font-semibold shadow-md hover:shadow-lg"
+            className="hidden md:block px-6 py-2.5 bg-gradient-to-r from-brand-blue to-brand-teal text-white rounded-lg hover:shadow-lg hover:from-brand-blue/90 hover:to-brand-teal/90 transition-all font-semibold shadow-md"
           >
             Get Started
           </Link>
