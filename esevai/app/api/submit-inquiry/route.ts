@@ -1,71 +1,69 @@
-import { NextRequest, NextResponse } from "next/server";
-import { N8N_WEBHOOK_URLS } from "@/lib/constants";
+// app/api/submit-inquiry/route.ts
+// ✅ For contact form / general inquiries
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, phone, subject, message } = body;
+    
+    const { name, email, phone, message, serviceInterest } = body;
 
-    if (!name || !email || !phone || !subject || !message) {
+    // Validate required fields
+    if (!name || !email || !phone || !message) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { success: false, error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Generate inquiry ID
-    const inquiryId = `INQ-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
-
-    // Prepare data for n8n webhook
-    const webhookPayload = {
-      inquiryId,
-      name,
-      email,
-      phone,
-      subject,
-      message,
+    // Prepare payload for n8n
+    const n8nPayload = {
+      event: 'inquiry.submitted',
+      inquiryId: `INQ-${Date.now()}`,
       timestamp: new Date().toISOString(),
-      type: "general_inquiry",
-      source: "contact_form",
+      
+      // Contact data
+      contactData: {
+        name,
+        email,
+        phone,
+        message,
+        serviceInterest: serviceInterest || 'General Inquiry',
+      },
     };
 
-    // Send to n8n webhook
-    if (N8N_WEBHOOK_URLS.inquiryWebhook) {
-      const webhookResponse = await fetch(N8N_WEBHOOK_URLS.inquiryWebhook, {
-        method: "POST",
+    console.log('Sending inquiry to n8n:', n8nPayload);
+
+    // Send to n8n webhook (different endpoint for inquiries)
+    if (process.env.N8N_INQUIRY_WEBHOOK) {
+      const n8nResponse = await fetch(process.env.N8N_INQUIRY_WEBHOOK, {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(webhookPayload),
+        body: JSON.stringify(n8nPayload),
       });
 
-      if (!webhookResponse.ok) {
-        console.error("n8n webhook failed:", await webhookResponse.text());
-        // Continue even if webhook fails
+      if (!n8nResponse.ok) {
+        console.error('N8N inquiry webhook failed:', await n8nResponse.text());
+        throw new Error('Failed to send inquiry to n8n');
       }
     }
 
-    // This will trigger:
-    // 1. Zendesk ticket creation
-    // 2. Email notification to customer
-    // 3. Internal team notification
-    // All handled by n8n workflow
-
-    return NextResponse.json(
-      {
-        success: true,
-        inquiryId,
-        message: "Inquiry submitted successfully",
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      success: true,
+      inquiryId: n8nPayload.inquiryId,
+      message: 'Thank you for your inquiry! We will contact you shortly.',
+    });
   } catch (error) {
-    console.error("Inquiry submission error:", error);
+    console.error('Inquiry submission error:', error);
     return NextResponse.json(
-      { error: "Failed to submit inquiry" },
+      { 
+        success: false, 
+        error: 'Failed to submit inquiry', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      },
       { status: 500 }
     );
   }
 }
-
-

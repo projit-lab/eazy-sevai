@@ -8,6 +8,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
+    
     <footer className="bg-white border-t border-gray-200">
       {/* Main Footer */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -139,8 +140,8 @@ export default function Footer() {
               <li className="flex items-start gap-3">
                 <Mail className="w-5 h-5 text-[#0066b3] mt-0.5 flex-shrink-0" />
                 <div>
-                  <a href="mailto:support@eazysevai.com" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
-                    support@eazysevai.com
+                  <a href="mailto:sevai@vysegroup.com" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
+                    sevai@vysegroup.com
                   </a>
                 </div>
               </li>
@@ -155,7 +156,9 @@ export default function Footer() {
               <li className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-[#0066b3] mt-0.5 flex-shrink-0" />
                 <div className="text-gray-600 text-sm">
-                  Tamil Nadu, India
+                  Villa 136, SNP Signature Villas,<br />
+                  Nedugundram, New Perungalathur,<br />
+                  Chennai - 600127
                 </div>
               </li>
             </ul>
@@ -171,15 +174,9 @@ export default function Footer() {
               © {currentYear} Eazy Sevai. All rights reserved.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6">
-              <Link href="/privacy-policy" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
-                Privacy Policy
-              </Link>
-              <Link href="/terms-of-service" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
-                Terms of Service
-              </Link>
-              <Link href="/refund-policy" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
-                Refund Policy
-              </Link>
+              <Link href="/terms" className="hover:underline">Terms & Conditions</Link>
+              <Link href="/refund-policy" className="hover:underline">Refund Policy</Link>
+              <Link href="/privacy-policy" className="hover:underline">Privacy Policy</Link>
               <Link href="/contact" className="text-gray-600 hover:text-[#0066b3] transition text-sm">
                 Contact
               </Link>

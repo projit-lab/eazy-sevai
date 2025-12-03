@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Service } from '@/lib/services';
 import { getServiceFormConfig } from '@/lib/service-form-configs';
 import { getServiceDocuments, getMandatoryDocuments, getOptionalDocuments } from '@/lib/service-documents';
@@ -14,9 +15,12 @@ interface ApplicationFormProps {
 interface UploadedFile {
   file: File;
   documentName: string;
+  cloudinaryUrl?: string;
+  fileId?: string;
 }
 
 export default function ApplicationForm({ service }: ApplicationFormProps) {
+  const router = useRouter();
   const formConfig = getServiceFormConfig(service.slug);
   const allDocuments = getServiceDocuments(service.slug);
   const mandatoryDocs = getMandatoryDocuments(service.slug);
@@ -24,6 +28,21 @@ export default function ApplicationForm({ service }: ApplicationFormProps) {
 
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadedFile>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
+  
+  // Form data state
+  const [formData, setFormData] = useState({
+    fullName: '',
+    aadhaar: '',
+    mobile: '',
+    email: '',
+    address: ''
+  });
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const handleFileUpload = (documentName: string, doc: RequiredDocument, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -86,7 +105,176 @@ export default function ApplicationForm({ service }: ApplicationFormProps) {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Generate IDs
+  const generateApplicationId = () => {
+    return `APP-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+  };
+
+  const generateLeadId = () => {
+    return `LEAD-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+  };
+
+  // Upload files to Cloudinary
+  const uploadFilesToCloudinary = async (applicationId: string, leadId: string) => {
+    const fileEntries = Object.entries(uploadedFiles);
+    const uploadedUrls: Record<string, string> = {};
+
+    if (fileEntries.length === 0) {
+      return uploadedUrls;
+    }
+
+    setUploadProgress(`Uploading documents (0/${fileEntries.length})...`);
+
+    for (let i = 0; i < fileEntries.length; i++) {
+      const [documentName, uploadedFile] = fileEntries[i];
+      
+      setUploadProgress(`Uploading ${documentName} (${i + 1}/${fileEntries.length})...`);
+
+      const formData = new FormData();
+      formData.append('file', uploadedFile.file);
+      formData.append('serviceSlug', service.slug);
+      formData.append('documentName', documentName);
+      formData.append('leadId', leadId);
+
+      try {
+        const response = await fetch('/api/upload-documents/documents', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to upload ${documentName}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+          uploadedUrls[documentName] = data.data.url;
+          
+          // Update the uploaded file with Cloudinary info
+          setUploadedFiles(prev => ({
+            ...prev,
+            [documentName]: {
+              ...prev[documentName],
+              cloudinaryUrl: data.data.url,
+              fileId: data.data.fileId
+            }
+          }));
+        } else {
+          throw new Error(data.error || `Failed to upload ${documentName}`);
+        }
+      } catch (error) {
+        console.error(`Error uploading ${documentName}:`, error);
+        throw new Error(`Failed to upload ${documentName}. Please try again.`);
+      }
+    }
+
+    setUploadProgress('All documents uploaded successfully!');
+    return uploadedUrls;
+  };
+
+  // Create Razorpay payment order
+  const createPaymentOrder = async (applicationId: string) => {
+    const response = await fetch('/api/create-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: service.totalPayable,
+        serviceName: service.name,
+        serviceSlug: service.slug,
+        applicationId,
+        userData: {
+          name: formData.fullName,
+          email: formData.email,
+          phone: formData.mobile,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create payment order');
+    }
+
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to create payment order');
+    }
+
+    return data;
+  };
+
+  // Verify payment
+  const verifyPayment = async (paymentResponse: any) => {
+    const response = await fetch('/api/payment/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(paymentResponse),
+    });
+
+    if (!response.ok) {
+      throw new Error('Payment verification failed');
+    }
+
+    const data = await response.json();
+    return data.success;
+  };
+
+  // Submit application to N8N
+  const submitApplicationToN8N = async (
+    applicationId: string,
+    orderId: string,
+    paymentId: string,
+    uploadedUrls: Record<string, string>
+  ) => {
+    const response = await fetch('/api/submit-application', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        applicationId,
+        orderId,
+        serviceSlug: service.slug,
+        serviceId: service.id,
+        serviceName: service.name,
+        paymentId,
+        userData: {
+          name: formData.fullName,
+          email: formData.email,
+          phone: formData.mobile,
+          address: formData.address,
+        },
+        formData: {
+          ...formData,
+          ...uploadedUrls, // Include uploaded document URLs
+        },
+        // Service feasibility flags for N8N workflow
+        serviceFeasibility: {
+          isFullyOnline: service.isFullyOnline || false,
+          requiresPhysicalPresence: service.requiresPhysicalPresence || false,
+          requiresSiteInspection: service.requiresSiteInspection || false,
+          isStatutoryFeeVariable: service.isStatutoryFeeVariable || false,
+          operationalComplexity: service.operationalComplexity || 'medium',
+        },
+        // Pricing breakdown for N8N workflow
+        pricing: {
+          statutoryFee: service.statutoryFee || 0,
+          professionalFee: service.professionalFee || 0,
+          gst: service.gst || 0,
+          totalPayable: service.totalPayable || 0,
+        },
+        // Timestamp
+        timestamp: new Date().toISOString(),
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('N8N submission failed, but payment was successful');
+    }
+
+    return await response.json();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Check if all mandatory documents are uploaded
@@ -97,9 +285,97 @@ export default function ApplicationForm({ service }: ApplicationFormProps) {
       return;
     }
 
-    // Process form submission
-    console.log('Form submitted with files:', uploadedFiles);
-    alert('Application submitted successfully! (This is a demo)');
+    // Validate form data
+    if (!formData.fullName || !formData.email || !formData.mobile) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setUploadProgress('Starting submission...');
+
+    try {
+      // Step 1: Generate IDs
+      const applicationId = generateApplicationId();
+      const leadId = generateLeadId();
+      
+      console.log('Generated IDs:', { applicationId, leadId });
+
+      // Step 2: Upload files to Cloudinary
+      setUploadProgress('Uploading documents...');
+      const uploadedUrls = await uploadFilesToCloudinary(applicationId, leadId);
+      console.log('Files uploaded:', uploadedUrls);
+
+      // Step 3: Create payment order
+      setUploadProgress('Creating payment order...');
+      const paymentOrder = await createPaymentOrder(applicationId);
+      console.log('Payment order created:', paymentOrder);
+
+      // Step 4: Open Razorpay checkout
+      setUploadProgress('Opening payment gateway...');
+      
+      const options = {
+        key: paymentOrder.razorpayKeyId,
+        amount: paymentOrder.amount,
+        currency: 'INR',
+        name: 'Eazy Sevai',
+        description: service.name,
+        order_id: paymentOrder.orderId,
+        prefill: {
+          name: formData.fullName,
+          email: formData.email,
+          contact: formData.mobile,
+        },
+        theme: {
+          color: '#0d9488', // Teal color to match your design
+        },
+        handler: async function (response: any) {
+          try {
+            setUploadProgress('Verifying payment...');
+            
+            // Verify payment
+            const verified = await verifyPayment(response);
+            
+            if (verified) {
+              setUploadProgress('Submitting application...');
+              
+              // Submit to N8N
+              await submitApplicationToN8N(
+                applicationId,
+                paymentOrder.orderId,
+                response.razorpay_payment_id,
+                uploadedUrls
+              );
+
+              // Redirect to success page
+              router.push(`/thank-you?applicationId=${applicationId}&orderId=${paymentOrder.orderId}`);
+            } else {
+              alert('Payment verification failed. Please contact support at service@vysegroup.com');
+            }
+          } catch (error) {
+            console.error('Post-payment error:', error);
+            alert('Payment successful but there was an error processing your application. Please contact support at service@vysegroup.com with your payment ID.');
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setIsSubmitting(false);
+            setUploadProgress('');
+            alert('Payment cancelled. Your application has not been submitted.');
+          },
+        },
+      };
+
+      // @ts-ignore - Razorpay is loaded via script tag
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+
+    } catch (error: any) {
+      console.error('Submission error:', error);
+      alert(error.message || 'Failed to submit application. Please try again or contact support at service@vysegroup.com');
+      setIsSubmitting(false);
+      setUploadProgress('');
+    }
   };
 
   return (
@@ -122,8 +398,11 @@ export default function ApplicationForm({ service }: ApplicationFormProps) {
               <input
                 type="text"
                 required
+                value={formData.fullName}
+                onChange={(e) => handleInputChange('fullName', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 placeholder="Enter your full name"
+                disabled={isSubmitting}
               />
             </div>
             
@@ -135,8 +414,11 @@ export default function ApplicationForm({ service }: ApplicationFormProps) {
                 type="text"
                 required
                 pattern="[0-9]{12}"
+                value={formData.aadhaar}
+                onChange={(e) => handleInputChange('aadhaar', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 placeholder="12-digit Aadhaar number"
+                disabled={isSubmitting}
               />
             </div>
 
@@ -148,8 +430,11 @@ export default function ApplicationForm({ service }: ApplicationFormProps) {
                 type="tel"
                 required
                 pattern="[0-9]{10}"
+                value={formData.mobile}
+                onChange={(e) => handleInputChange('mobile', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 placeholder="10-digit mobile number"
+                disabled={isSubmitting}
               />
             </div>
 
@@ -160,8 +445,11 @@ export default function ApplicationForm({ service }: ApplicationFormProps) {
               <input
                 type="email"
                 required
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 placeholder="your.email@example.com"
+                disabled={isSubmitting}
               />
             </div>
 
@@ -172,8 +460,11 @@ export default function ApplicationForm({ service }: ApplicationFormProps) {
               <textarea
                 required
                 rows={3}
+                value={formData.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 placeholder="Enter your complete address"
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -197,6 +488,7 @@ export default function ApplicationForm({ service }: ApplicationFormProps) {
                   error={errors[doc.name]}
                   onUpload={(e) => handleFileUpload(doc.name, doc, e)}
                   onRemove={() => removeFile(doc.name)}
+                  disabled={isSubmitting}
                 />
               ))}
             </div>
@@ -221,6 +513,7 @@ export default function ApplicationForm({ service }: ApplicationFormProps) {
                   error={errors[doc.name]}
                   onUpload={(e) => handleFileUpload(doc.name, doc, e)}
                   onRemove={() => removeFile(doc.name)}
+                  disabled={isSubmitting}
                 />
               ))}
             </div>
@@ -237,17 +530,39 @@ export default function ApplicationForm({ service }: ApplicationFormProps) {
           </div>
         )}
 
+        {/* Progress Message */}
+        {uploadProgress && (
+          <div className="mb-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
+            <p className="text-teal-800 text-center font-medium">
+              {uploadProgress}
+            </p>
+          </div>
+        )}
+
         {/* Submit Button */}
         <div className="flex justify-end">
           <button
             type="submit"
-            className="px-8 py-3 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 transition-colors duration-200 flex items-center gap-2"
+            disabled={isSubmitting}
+            className="px-8 py-3 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 transition-colors duration-200 flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            <CheckCircle2 className="w-5 h-5" />
-            Submit Application
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                {uploadProgress || 'Processing...'}
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-5 h-5" />
+                Proceed to Payment - ₹{service.totalPayable}
+              </>
+            )}
           </button>
         </div>
       </form>
+
+      {/* Load Razorpay script */}
+      <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
     </div>
   );
 }
@@ -259,9 +574,10 @@ interface DocumentUploadCardProps {
   error?: string;
   onUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRemove: () => void;
+  disabled?: boolean;
 }
 
-function DocumentUploadCard({ document, uploadedFile, error, onUpload, onRemove }: DocumentUploadCardProps) {
+function DocumentUploadCard({ document, uploadedFile, error, onUpload, onRemove, disabled }: DocumentUploadCardProps) {
   const isUploaded = !!uploadedFile;
   const inputId = `file-${document.name.replace(/\s+/g, '-').toLowerCase()}`;
 
@@ -332,7 +648,9 @@ function DocumentUploadCard({ document, uploadedFile, error, onUpload, onRemove 
           <>
             <label
               htmlFor={inputId}
-              className="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 cursor-pointer transition-colors duration-200 flex items-center gap-2"
+              className={`px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 cursor-pointer transition-colors duration-200 flex items-center gap-2 ${
+                disabled ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               <FileUp className="w-4 h-4" />
               Choose File
@@ -342,6 +660,7 @@ function DocumentUploadCard({ document, uploadedFile, error, onUpload, onRemove 
               type="file"
               accept={document.formats.map(f => `.${f.toLowerCase()}`).join(',')}
               onChange={onUpload}
+              disabled={disabled}
               className="hidden"
             />
           </>
@@ -353,7 +672,10 @@ function DocumentUploadCard({ document, uploadedFile, error, onUpload, onRemove 
             <button
               type="button"
               onClick={onRemove}
-              className="px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center gap-1"
+              disabled={disabled}
+              className={`px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center gap-1 ${
+                disabled ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               <X className="w-4 h-4" />
               Remove

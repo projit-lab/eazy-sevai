@@ -1,6 +1,9 @@
 import { notFound } from 'next/navigation';
 import { getServiceBySlug } from '@/lib/services';
 import Link from 'next/link';
+import ServiceFeasibilityBadge from '@/components/ServiceFeasibilityBadge'
+import GlobalServiceDisclaimer from '@/components/GlobalServiceDisclaimer'
+
 
 export default async function ServiceDetailPage({
   params,
@@ -15,8 +18,8 @@ export default async function ServiceDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 pb-12">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
         <Link 
           href="/services" 
@@ -41,8 +44,23 @@ export default async function ServiceDetailPage({
           )}
         </div>
 
+        <ServiceFeasibilityBadge
+          isFullyOnline={service.isFullyOnline}
+          requiresPhysicalPresence={service.requiresPhysicalPresence}
+          requiresSiteInspection={service.requiresSiteInspection}
+          isStatutoryFeeVariable={service.isStatutoryFeeVariable}
+        />
+
         {/* Fee Breakdown */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          {service.isStatutoryFeeVariable && (
+            <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <p className="text-sm text-purple-900">
+                <strong>⚠️ Variable Fee:</strong> {service.statutoryFeeNote}
+              </p>
+            </div>
+          )}
+          
           <h2 className="text-2xl font-semibold mb-4" style={{ color: '#1e3a5f' }}>
             💰 Fee Breakdown
           </h2>
@@ -158,6 +176,9 @@ export default async function ServiceDetailPage({
             </div>
           </div>
         </div>
+
+        {/* Global Service Disclaimer */}
+        <GlobalServiceDisclaimer />
       </div>
     </div>
   );

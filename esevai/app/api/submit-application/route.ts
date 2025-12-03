@@ -1,74 +1,113 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
+
+// Import service data to get service details
+interface Service {
+  id: string;
+  name: string;
+  slug: string;
+  category: string;
+  professionalFee: number;
+  statutoryFee: number;
+  gst: number;
+  totalPayable: number;
+  isFullyOnline?: boolean;
+  requiresPhysicalPresence?: boolean;
+  requiresSiteInspection?: boolean;
+  isStatutoryFeeVariable?: boolean;
+  statutoryFeeNote?: string;
+  operationalComplexity?: 'low' | 'medium' | 'high';
+}
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== 🚀 FORM SUBMISSION RECEIVED ===');
-    
-    const formData = await request.formData();
-    const serviceId = formData.get("serviceId") as string;
-    const userData = JSON.parse(formData.get("userData") as string);
-    const submittedFormData = JSON.parse(formData.get("formData") as string);
+    const body = await request.json();
+    const { applicationId, orderId, serviceSlug, paymentId, userData, formData } = body;
 
-    const applicationId = `APP-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-    // Map service ID to readable name
-    const serviceNameMap: Record<string, string> = {
-      'aadhaar-new': 'New Aadhaar Enrollment',
-      'aadhaar-update': 'Aadhaar Update',
-      'passport-new': 'New Passport Application',
-      'passport-renewal': 'Passport Renewal',
-      'birth-certificate': 'Birth Certificate',
-      'death-certificate': 'Death Certificate',
-      'marriage-certificate': 'Marriage Certificate',
-    };
-
-    const applicationData = {
-      applicationId,
-      serviceId,
-      serviceName: serviceNameMap[serviceId] || serviceId,
-      userData,
-      formData: submittedFormData, // Includes file URLs
-      timestamp: new Date().toISOString(),
-      paymentStatus: 'pending',
-    };
-
-    console.log('🔍 EXACT DATA BEING SENT TO N8N:');
-console.log(JSON.stringify(applicationData, null, 2));
-
-    console.log('📦 Application Data:', JSON.stringify(applicationData, null, 2));
-    console.log('🔗 n8n Webhook URL:', process.env.NEXT_PUBLIC_N8N_FORM_WEBHOOK);
-
-    // Send to n8n immediately to create Zendesk ticket
-    if (process.env.NEXT_PUBLIC_N8N_FORM_WEBHOOK) {
-      console.log('⏳ Sending to n8n...');
-      
-      try {
-        const response = await fetch(process.env.NEXT_PUBLIC_N8N_FORM_WEBHOOK, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(applicationData),
-        });
-
-        const responseText = await response.text();
-        console.log('✅ n8n Response Status:', response.status);
-        console.log('📄 n8n Response Body:', responseText);
-
-        if (!response.ok) {
-          console.error('❌ n8n responded with error');
-        }
-      } catch (fetchError) {
-        console.error('❌ Error calling n8n:', fetchError);
-      }
-    } else {
-      console.log('⚠️ N8N webhook URL not configured!');
+    // Validate required fields
+    if (!applicationId || !orderId || !serviceSlug || !userData) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
+
+    // You'll need to import your services data to get full service details
+    // For now, we'll send what we have
+    const serviceDetails = {
+      slug: serviceSlug,
+      // These would come from your services.ts file
+      isFullyOnline: false,
+      requiresPhysicalPresence: false,
+      requiresSiteInspection: false,
+      isStatutoryFeeVariable: false,
+      operationalComplexity: 'medium',
+    };
+
+    // Prepare application data for N8N
+    const applicationData = {
+      // Application Info
+      applicationId,
+      orderId,
+      paymentId,
+      serviceSlug,
+      
+      // User Data
+      userName: userData.name,
+      userEmail: userData.email,
+      userPhone: userData.phone,
+      userAddress: userData.address || '',
+      
+      // Form Data (documents, etc.)
+      formData: formData || {},
+      
+      // Service Details
+      ...serviceDetails,
+      
+      // Timestamp
+      submittedAt: new Date().toISOString(),
+      
+      // Status
+      status: 'submitted',
+    };
+
+    // Send to N8N webhook
+    const n8nWebhook = process.env.N8N_WEBHOOK_URL;
+    
+    if (!n8nWebhook) {
+      console.error('N8N_WEBHOOK_URL not configured');
+      return NextResponse.json(
+        { success: false, error: 'Webhook not configured' },
+        { status: 500 }
+      );
+    }
+
+    const n8nResponse = await fetch(n8nWebhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(applicationData),
+    });
+
+    if (!n8nResponse.ok) {
+      throw new Error(`N8N webhook failed: ${n8nResponse.status}`);
+    }
+
+    const n8nData = await n8nResponse.json().catch(() => ({}));
 
     return NextResponse.json({
       success: true,
+      message: 'Application submitted successfully',
       applicationId,
+      n8nResponse: n8nData,
     });
-  } catch (error) {
-    console.error("❌ Submission error:", error);
-    return NextResponse.json({ error: "Failed to submit" }, { status: 500 });
+
+  } catch (error: any) {
+    console.error('Application submission error:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error.message || 'Failed to submit application' 
+      },
+      { status: 500 }
+    );
   }
 }

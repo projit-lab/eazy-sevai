@@ -1,286 +1,328 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { CONTACT, WORKING_HOURS } from "@/lib/constants";
-import { Mail, Phone, MapPin, Clock, MessageCircle, Loader2, CheckCircle } from "lucide-react";
-import { Metadata } from "next";
+import { useState } from 'react'
+import { Mail, Phone, MapPin, Clock, Send, MessageSquare } from 'lucide-react'
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    subject: "",
-    message: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+    name: '',
+    email: '',
+    phone: '',
+    subject: '',
+    message: ''
+  })
+  
+  const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
+  const [errorMessage, setErrorMessage] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+    e.preventDefault()
+    setStatus('sending')
+    setErrorMessage('')
 
     try {
-      // Submit to API route which forwards to n8n
-      const response = await fetch("/api/submit-inquiry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      // Send to Zendesk API
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(formData),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error("Failed to submit inquiry");
+        throw new Error('Failed to send message')
       }
 
-      setIsSubmitted(true);
-      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
+      const data = await response.json()
+      
+      setStatus('success')
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' })
+      
+      // Reset status after 5 seconds
+      setTimeout(() => setStatus('idle'), 5000)
+      
     } catch (error) {
-      console.error("Submission error:", error);
-      alert("Failed to submit inquiry. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+      console.error('Contact form error:', error)
+      setStatus('error')
+      setErrorMessage('Failed to send message. Please try calling us directly.')
+      setTimeout(() => setStatus('idle'), 5000)
     }
-  };
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }))
+  }
 
   return (
-    <div className="flex justify-center items-center">
-    <div className="container py-12 md:py-16">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-12 text-center">
-          <h1 className="mb-4 text-4xl font-bold tracking-tight">Contact Us</h1>
-          <p className="text-lg text-muted-foreground">
-            Have questions? We're here to help. Reach out to us anytime.
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Page Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: '#1e3a5f' }}>
+            Get in Touch
+          </h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Have questions? We're here to help you with all your government documentation needs.
           </p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-3">
-          {/* Contact Information */}
-          <div className="space-y-6 lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Get in Touch</CardTitle>
-                <CardDescription>We're here to help you</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Phone className="mt-1 h-5 w-5 shrink-0 text-primary" />
-                  <div>
-                    <p className="font-medium">Phone</p>
-                    <a
-                      href={`tel:${CONTACT.phone}`}
-                      className="text-sm text-muted-foreground hover:text-primary"
-                    >
-                      {CONTACT.phone}
-                    </a>
-                  </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Contact Information Cards */}
+          <div className="lg:col-span-1 space-y-6">
+            
+            {/* Email Card */}
+            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#0066b3' }}>
+                  <Mail className="w-6 h-6 text-white" />
                 </div>
-                <div className="flex items-start gap-3">
-                  <MessageCircle className="mt-1 h-5 w-5 shrink-0 text-green-500" />
-                  <div>
-                    <p className="font-medium">WhatsApp</p>
-                    <a
-                      href={`https://wa.me/${CONTACT.whatsapp.replace(/[^0-9]/g, '')}`}
-                      className="text-sm text-muted-foreground hover:text-primary"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {CONTACT.whatsapp}
-                    </a>
-                  </div>
+                <div className="flex-1">
+                  <h3 className="font-bold mb-2" style={{ color: '#1e3a5f' }}>Email Us</h3>
+                  <a 
+                    href="mailto:sevai@vysegroup.com" 
+                    className="text-gray-600 hover:text-[#0066b3] transition break-all"
+                  >
+                    sevai@vysegroup.com
+                  </a>
+                  <p className="text-sm text-gray-500 mt-1">We'll respond within 24 hours</p>
                 </div>
-                <div className="flex items-start gap-3">
-                  <Mail className="mt-1 h-5 w-5 shrink-0 text-primary" />
-                  <div>
-                    <p className="font-medium">Email</p>
-                    <a
-                      href={`mailto:${CONTACT.email}`}
-                      className="text-sm text-muted-foreground hover:text-primary"
-                    >
-                      {CONTACT.email}
-                    </a>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <MapPin className="mt-1 h-5 w-5 shrink-0 text-primary" />
-                  <div>
-                    <p className="font-medium">Address</p>
-                    <p className="text-sm text-muted-foreground">{CONTACT.address}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Working Hours</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <Clock className="mt-1 h-5 w-5 shrink-0 text-primary" />
-                  <div className="space-y-1 text-sm">
-                    <p>
+            {/* Phone Card */}
+            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#14b8a6' }}>
+                  <Phone className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold mb-2" style={{ color: '#1e3a5f' }}>Call Us</h3>
+                  <a 
+                    href="tel:+917845495937" 
+                    className="text-gray-600 hover:text-[#0066b3] transition text-lg font-semibold"
+                  >
+                    +91 78454 95937
+                  </a>
+                  <p className="text-sm text-gray-500 mt-1">Mon-Sat: 9:00 AM - 6:00 PM</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Address Card */}
+            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#f0b42f' }}>
+                  <MapPin className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold mb-2" style={{ color: '#1e3a5f' }}>Visit Us</h3>
+                  <address className="text-gray-600 not-italic text-sm leading-relaxed">
+                    Villa 136, SNP Signature Villas,<br />
+                    Nedugundram, New Perungalathur,<br />
+                    Chennai - 600127
+                  </address>
+                </div>
+              </div>
+            </div>
+
+            {/* Business Hours Card */}
+            <div className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-xl p-6 border-2 border-[#0066b3]/20">
+              <div className="flex items-start gap-4">
+                <Clock className="w-6 h-6 flex-shrink-0" style={{ color: '#0066b3' }} />
+                <div>
+                  <h3 className="font-bold mb-3" style={{ color: '#1e3a5f' }}>Business Hours</h3>
+                  <div className="space-y-2 text-sm text-gray-700">
+                    <div className="flex justify-between">
                       <span className="font-medium">Monday - Friday:</span>
-                      <br />
-                      <span className="text-muted-foreground">{WORKING_HOURS.weekdays}</span>
-                    </p>
-                    <p>
+                      <span>9:00 AM - 6:00 PM</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="font-medium">Saturday:</span>
-                      <br />
-                      <span className="text-muted-foreground">{WORKING_HOURS.saturday}</span>
-                    </p>
-                    <p>
+                      <span>9:00 AM - 2:00 PM</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="font-medium">Sunday:</span>
-                      <br />
-                      <span className="text-muted-foreground">{WORKING_HOURS.sunday}</span>
-                    </p>
+                      <span className="text-red-600">Closed</span>
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            {/* WhatsApp CTA */}
-            <Button asChild className="w-full" size="lg">
-              <a
-                href={`https://wa.me/${CONTACT.whatsapp.replace(/[^0-9]/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MessageCircle className="mr-2 h-5 w-5" />
-                Chat on WhatsApp
-              </a>
-            </Button>
           </div>
 
           {/* Contact Form */}
           <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Send us a Message</CardTitle>
-                <CardDescription>
-                  Fill out the form below and we'll get back to you as soon as possible
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isSubmitted ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="mb-4 rounded-full bg-green-500/10 p-3">
-                      <CheckCircle className="h-12 w-12 text-green-500" />
-                    </div>
-                    <h3 className="mb-2 text-xl font-semibold">Message Sent!</h3>
-                    <p className="mb-6 text-muted-foreground">
-                      Thank you for contacting us. We'll get back to you within 24 hours.
-                    </p>
-                    <Button onClick={() => setIsSubmitted(false)}>
-                      Send Another Message
-                    </Button>
+            <div className="bg-white rounded-xl shadow-md p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <MessageSquare className="w-6 h-6" style={{ color: '#0066b3' }} />
+                <h2 className="text-2xl font-bold" style={{ color: '#1e3a5f' }}>
+                  Send Us a Message
+                </h2>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Name */}
+                <div>
+                  <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#0066b3] focus:outline-none transition"
+                    placeholder="Enter your full name"
+                  />
+                </div>
+
+                {/* Email and Phone Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#0066b3] focus:outline-none transition"
+                      placeholder="your.email@example.com"
+                    />
                   </div>
-                ) : (
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Full Name *</Label>
-                        <Input
-                          id="name"
-                          required
-                          value={formData.name}
-                          onChange={(e) =>
-                            setFormData({ ...formData, name: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          required
-                          value={formData.email}
-                          onChange={(e) =>
-                            setFormData({ ...formData, email: e.target.value })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number *</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          required
-                          value={formData.phone}
-                          onChange={(e) =>
-                            setFormData({ ...formData, phone: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="subject">Subject *</Label>
-                        <Input
-                          id="subject"
-                          required
-                          value={formData.subject}
-                          onChange={(e) =>
-                            setFormData({ ...formData, subject: e.target.value })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="message">Message *</Label>
-                      <Textarea
-                        id="message"
-                        required
-                        rows={6}
-                        value={formData.message}
-                        onChange={(e) =>
-                          setFormData({ ...formData, message: e.target.value })
-                        }
-                      />
-                    </div>
-                    <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          Sending...
-                        </>
-                      ) : (
-                        "Send Message"
-                      )}
-                    </Button>
-                  </form>
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#0066b3] focus:outline-none transition"
+                      placeholder="+91 XXXXX XXXXX"
+                    />
+                  </div>
+                </div>
+
+                {/* Subject */}
+                <div>
+                  <label htmlFor="subject" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Subject *
+                  </label>
+                  <select
+                    id="subject"
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#0066b3] focus:outline-none transition"
+                  >
+                    <option value="">Select a subject</option>
+                    <option value="general">General Inquiry</option>
+                    <option value="service">Service Information</option>
+                    <option value="pricing">Pricing Question</option>
+                    <option value="support">Technical Support</option>
+                    <option value="feedback">Feedback</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                {/* Message */}
+                <div>
+                  <label htmlFor="message" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Message *
+                  </label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    required
+                    rows={6}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#0066b3] focus:outline-none transition resize-none"
+                    placeholder="Tell us how we can help you..."
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <div>
+                  <button
+                    type="submit"
+                    disabled={status === 'sending'}
+                    className="w-full px-8 py-4 text-white rounded-lg font-semibold text-lg hover:opacity-90 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    style={{ background: 'linear-gradient(135deg, #0066b3 0%, #14b8a6 100%)' }}
+                  >
+                    {status === 'sending' ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Sending...
+                      </>
+                    ) : status === 'success' ? (
+                      <>
+                        ✓ Message Sent!
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5" />
+                        Send Message
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Success Message */}
+                {status === 'success' && (
+                  <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+                    <p className="text-green-800 text-sm font-medium">
+                      ✓ Thank you for contacting us! We'll get back to you within 24 hours.
+                    </p>
+                  </div>
                 )}
-              </CardContent>
-            </Card>
+
+                {/* Error Message */}
+                {status === 'error' && (
+                  <div className="p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                    <p className="text-red-800 text-sm font-medium">
+                      ✗ {errorMessage}
+                    </p>
+                  </div>
+                )}
+              </form>
+            </div>
+
+            {/* Additional Info */}
+            <div className="mt-6 p-6 bg-blue-50 rounded-lg border-2 border-[#0066b3]/20">
+              <p className="text-sm text-gray-700">
+                <strong className="text-[#1e3a5f]">Need immediate assistance?</strong> Call us directly at{' '}
+                <a href="tel:+917845495937" className="font-semibold text-[#0066b3] hover:underline">
+                  +91 78454 95937
+                </a>{' '}
+                or email{' '}
+                <a href="mailto:sevai@vysegroup.com" className="font-semibold text-[#0066b3] hover:underline">
+                  sevai@vysegroup.com
+                </a>
+              </p>
+            </div>
           </div>
+
         </div>
 
-        {/* Map Section (Placeholder) */}
-        <Card className="mt-8">
-          <CardContent className="p-0">
-            <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3888.0!2d80.0!3d13.0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTPCsDAwJzAwLjAiTiA4MMKwMDAnMDAuMCJF!5e0!3m2!1sen!2sin!4v1234567890"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Office Location"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
       </div>
     </div>
-  );
+  )
 }
-
-
