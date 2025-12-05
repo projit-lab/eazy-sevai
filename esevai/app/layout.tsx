@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
+import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,17 +25,13 @@ export default function RootLayout({
           {children}
         </main>
         <Footer />
+        
+        {/* Razorpay Script - Load globally */}
+        <Script
+          src="https://checkout.razorpay.com/v1/checkout.js"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );
 }
-
-
-
-
-
-
-
-
-
-6
