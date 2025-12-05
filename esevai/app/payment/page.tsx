@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
 
-export default function PaymentPage() {
+// 1. We move the main logic into a separate component
+function PaymentContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -227,5 +228,18 @@ export default function PaymentPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 2. We export the main Page component wrapped in Suspense
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    }>
+      <PaymentContent />
+    </Suspense>
   );
 }
